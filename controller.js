@@ -131,22 +131,59 @@ Elevator.prototype.isEligible = function (direction, floor) {
       return true;
     }
 
-    //if the elevator is moving up, look for one where current floor < floor and max dest >= floor
+    //if the elevator is moving up
     if (direction === 1 && _.contains(_.range(elev.currentFloor, Math.max(elev.destinations) + 1), floor)) {
       elevWillPass = elev;
-    //if the elevator is moving down, look for one where current floor is > floor and min dest <= floor
+    //if the elevator is moving down
     } else if (direction === -1 && _.contains(_.range(Math.min(elev.destinations), elev.currentFloor + 1), floor)) {
       elevWillPass = elev;
-    //if we have no closestUnoccupied, or the difference between current floor and floor is < stored, store this one
-    } else {
+    //if we have no closestUnoccupied
       if (!elev.occupied && (_.isUndefined(closestUnoccupied) || Math.abs(floor = elev.currentFloor) < closestUnoccupiedDistance)) {
         closestUnoccupied = elev;
         closestUnoccupiedDistance = Math.abs(floor = elev.currentFloor);
       }
     }
-  });
+ if (elevOnFloor) {
+    elevOnFloor.goToFloor(floor);
+  } else if (elevWillPass) {
+    elevWillPass.goToFloor(floor);
+  } else if (closestUnoccupied) {
+    closestUnoccupied.goToFloor(floor);
+  //if no elevator is available queue request to be consumed the next time an elevator
+  } else if (!_.contains(this.queuedRequests, floor)) {
+    this.queuedRequests.push(floor);
+  }
+};
 }
 
+var TRIPS_TILL_MAINTENANCE = 100;
+Elevator.prototype.addTrip = function () {
+  this.numTrips++;
+  if (this.numTrips >= TRIPS_TILL_MAINTENANCE) {
+    this.needsMaintenance = true;
+    this.emit("need_maintenance");
+  }
+};
+Elevator.prototype.goToFloor = function (floor) {
+  var me = this
+    ;
+
+  if (!_.isNumber(floor)) {
+    throw new Error("Elevator.prototype.goToFloor called with a non-number: "+floor);
+  }
+
+  //if we are on the floor we're supposed to go to, just open the doors.
+  if (floor === me.currentFloor) {
+    return me.arrivedAtFloor(floor);
+  }
+
+  if (me._addDestination(floor)) {
+    me.addTrip();
+    return true;
+  }
+
+  return false;
+};
 
 /* init */
 var main = new Controller(6, 4);
