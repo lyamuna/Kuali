@@ -13,7 +13,6 @@ var Controller = function (n, m) {
         this.elevators.push (new Elevator(i));
     }
 }
-/this has to be handled by the prototype, so it has access to the controller itself in the event handlers
   function setupListeners (newElev) {
     elevCont.handleEvent(newElev, "already_at_destination");
     elevCont.handleEvent(newElev, "call_when_needs_maintenance");
@@ -46,4 +45,67 @@ Controller.prototype.handleRequest = function (direction, floor) {
         alert('no eligible elevators');
     }
 }
+/* Button class */
+var Button = function (buttonType, floorNum, floorId) {
+    Controller.apply(this); 
+    this.buttonType = buttonType; // 1 is up, -1 is down
+    this.buttonFloor = floorNum;
+    this.buttonTypeString = (this.buttonType == 1) ? 'up_button' : 'down_button';
 
+    this.buttonId = this.buttonTypeString + '_' + this.buttonFloor;
+    this.buttonHtml = '<a href="#" id="' + this.buttonId + '">' + 
+                      this.buttonTypeString + '</a><br/>';
+
+    $('#' + floorId).append (this.buttonHtml);
+    $('#' + this.buttonId).click( this.buttonPressed.bind(this) );
+}
+Button.prototype = Object.create(Controller.prototype);Button.prototype.constructor = Button; // TODO comment this?
+Button.prototype.buttonPressed = function() {
+    console.log('button pressed from button');
+    this.handleRequest(this.buttonType, this.buttonFloor);
+}
+Button.prototype.getHtml = function () {
+    return this.buttonHtml;
+}
+
+/* Floor class */
+var Floor = function (floorNum) {
+    this.floorNum = floorNum;
+
+    this.floorId = 'floor_item_' + this.floorNum;
+    this.initDisplay();
+
+    this.upButton = new Button(1, this.floorNum, this.floorId);
+    this.downButton = new Button(-1, this.floorNum, this.floorId);
+}
+Floor.prototype.initDisplay = function() {
+    $('#floors_list').append ('<li id="' + this.floorId + '"><strong>Floor: ' + this.floorNum + '</strong><br/></li>');
+};
+
+/* Elevator class */
+var Elevator = function (elevatorNum) {
+    this.elevatorNum = elevatorNum;
+    this.direction = 0; // 0 is idle, 1 is up, -1 is down
+    this.idleFloor = 0;
+
+    this.elevatorId = 'elevator_item_' + elevatorNum;
+    this.initDisplay();
+}
+Elevator.prototype.initDisplay = function () {
+    this.html = '<li id="' + this.elevatorId + '"><strong>Elevator: ' + this.elevatorNum + '</strong><br/>' + 
+                'Floor: ' + this.idleFloor + '<br/></li>';
+    $('#elevators_list').append(this.html);
+}
+Elevator.prototype.statusDisplay = function () {
+    this.html = '';
+    if (this.direction == 0) {
+        this.html = 'Floor: ' + this.idleFloor + '<br/>';    
+    } else {
+        this.html = 'Moving in ' + ((this.direction == 1) ? 'up' : 'down') + ' direction<br/>';    
+    }
+    
+    $('#' + this.elevatorId).append(this.html);
+}
+
+/* init */
+var main = new Controller(6, 4);
