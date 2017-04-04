@@ -106,6 +106,47 @@ Elevator.prototype.statusDisplay = function () {
     
     $('#' + this.elevatorId).append(this.html);
 }
+Elevator.prototype.assignJob = function (direction, floor) {
+    if (floor == this.idleFloor) {
+        this.statusDisplay();
+    } else {
+        this.direction = ((floor - this.idleFloor) > 0 ? 1 : -1);
+        this.statusDisplay();
+        setTimeout( function() { 
+            this.idleFloor = floor;
+            this.direction = 0; 
+            this.statusDisplay();
+        }.bind(this), 1000 * Math.abs(floor - this.idleFloor) );
+    }
+}
+Elevator.prototype.isEligible = function (direction, floor) {
+    //look through the elevators for one that is on the floor, one that will pass by the floor, and/or the closest unoccupied elevator
+  elevators.some(function (elev) {
+    //checking if that elevator needs maintanence
+    if (elev.needs_maintenance) {
+      return;
+    }
+    if (elev.currentFloor === floor) {
+      elevOnFloor = elev;
+      return true;
+    }
+
+    //if the elevator is moving up, look for one where current floor < floor and max dest >= floor
+    if (direction === 1 && _.contains(_.range(elev.currentFloor, Math.max(elev.destinations) + 1), floor)) {
+      elevWillPass = elev;
+    //if the elevator is moving down, look for one where current floor is > floor and min dest <= floor
+    } else if (direction === -1 && _.contains(_.range(Math.min(elev.destinations), elev.currentFloor + 1), floor)) {
+      elevWillPass = elev;
+    //if we have no closestUnoccupied, or the difference between current floor and floor is < stored, store this one
+    } else {
+      if (!elev.occupied && (_.isUndefined(closestUnoccupied) || Math.abs(floor = elev.currentFloor) < closestUnoccupiedDistance)) {
+        closestUnoccupied = elev;
+        closestUnoccupiedDistance = Math.abs(floor = elev.currentFloor);
+      }
+    }
+  });
+}
+
 
 /* init */
 var main = new Controller(6, 4);
