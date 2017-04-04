@@ -165,7 +165,6 @@ Elevator.prototype.addTrip = function () {
   }
 };
 Elevator.prototype.goToFloor = function (floor) {
-  var me = this
     ;
 
   if (!_.isNumber(floor)) {
@@ -174,16 +173,37 @@ Elevator.prototype.goToFloor = function (floor) {
 
   //if we are on the floor we're supposed to go to, just open the doors.
   if (floor === me.currentFloor) {
-    return me.arrivedAtFloor(floor);
+    return this.arrivedAtFloor(floor);
   }
 
-  if (me._addDestination(floor)) {
-    me.addTrip();
+  if (this._addDestination(floor)) {
+    this.addTrip();
     return true;
   }
 
+
   return false;
 };
+this.arrivedAtFloor = function (floor) {
 
+  this.emit("at_floor", floor);
+  this.currentFloor = floor;
+
+  if (_.contains(this.destinations), floor) {
+    _.remove(this.destinations, function (val) {
+      return val === floor;
+    });
+    //call to interface to open doors
+    this.emit("doors_open");
+    return this.waitForLoad().then(function () {
+      //call to interface to close doors
+      this.emit("doors_closed");
+      if (this.destinations.length === 0) {
+        this.occupied = false;
+        this.emit("unoccupied");
+      }
+      this.execute();
+    });
+  }
 /* init */
 var main = new Controller(6, 4);
